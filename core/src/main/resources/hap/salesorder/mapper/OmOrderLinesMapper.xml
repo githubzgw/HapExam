@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hap.salesorder.mapper.OmOrderLinesMapper">
+    <resultMap id="BaseResultMap" type="hap.salesorder.dto.OmOrderLines">
+        <result column="LINE_ID" property="lineId" jdbcType="DECIMAL"/>
+        <result column="HEADER_ID" property="headerId" jdbcType="DECIMAL"/>
+        <result column="LINE_NUMBER" property="lineNumber" jdbcType="DECIMAL"/>
+        <result column="INVENTORY_ITEM_ID" property="inventoryItemId" jdbcType="DECIMAL"/>
+        <result column="ORDERD_QUANTITY" property="orderdQuantity" jdbcType="DECIMAL"/>
+        <result column="ORDER_QUANTITY_UOM" property="orderQuantityUom" jdbcType="VARCHAR"/>
+        <result column="UNIT_SELLING_PRICE" property="unitSellingPrice" jdbcType="DECIMAL"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="ADDITION1" property="addition1" jdbcType="VARCHAR"/>
+        <result column="ADDITION2" property="addition2" jdbcType="VARCHAR"/>
+        <result column="ADDITION3" property="addition3" jdbcType="VARCHAR"/>
+        <result column="ADDITION4" property="addition4" jdbcType="VARCHAR"/>
+        <result column="ADDITION5" property="addition5" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="MyBaseResultMap" type="hap.salesorder.dto.OmOrderLines">
+
+
+        <result column="ITEM_CODE" property="itemCode" jdbcType="VARCHAR"/>
+        <result column="ITEM_DESCRIPTION" property="itemDescription" jdbcType="VARCHAR"/>
+        <result column="ORDER_QUANTITY_UOM" property="orderQuantityUom" jdbcType="VARCHAR"/>
+        <result column="ORDERD_QUANTITY" property="orderdQuantity" jdbcType="DECIMAL"/>
+        <result column="UNIT_SELLING_PRICE" property="unitSellingPrice" jdbcType="DECIMAL"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+
+        <result column="PRICE" property="price" jdbcType="DECIMAL"/>
+        <result column="LINE_ID" property="lineId" jdbcType="DECIMAL"/>
+        <result column="HEADER_ID" property="headerId" jdbcType="DECIMAL"/>
+        <result column="LINE_NUMBER" property="lineNumber" jdbcType="DECIMAL"/>
+        <result column="INVENTORY_ITEM_ID" property="inventoryItemId" jdbcType="DECIMAL"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="ADDITION1" property="addition1" jdbcType="VARCHAR"/>
+        <result column="ADDITION2" property="addition2" jdbcType="VARCHAR"/>
+        <result column="ADDITION3" property="addition3" jdbcType="VARCHAR"/>
+        <result column="ADDITION4" property="addition4" jdbcType="VARCHAR"/>
+        <result column="ADDITION5" property="addition5" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="myselect" resultMap="MyBaseResultMap" parameterType="hap.salesorder.dto.OmOrderLines">
+        SELECT
+        ol.LINE_ID,
+        ol.HEADER_ID,
+        ol.LINE_NUMBER,
+        ol.INVENTORY_ITEM_ID,
+        ii.ITEM_CODE,
+        ii.ITEM_DESCRIPTION,
+        ol.ORDER_QUANTITY_UOM,
+        ol.ORDERD_QUANTITY,
+        ol.UNIT_SELLING_PRICE,
+        ol.DESCRIPTION,
+        ( ol.ORDERD_QUANTITY * ol.UNIT_SELLING_PRICE ) as PRICE,
+        ol.ADDITION1,
+        ol.ADDITION2,
+        ol.ADDITION3,
+        ol.ADDITION4,
+        ol.ADDITION5
+        FROM
+        hap_om_order_lines ol,
+        hap_inv_inventory_items ii
+        WHERE
+        ii.INVENTORY_ITEM_ID = ol.INVENTORY_ITEM_ID
+        <if test=" headerId != null">
+            and ol.HEADER_ID = #{headerId}
+        </if>
+        order by LINE_NUMBER asc
+    </select>
+
+    <select id="selectLineNumberMax" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        select LINE_NUMBER from hap_om_order_lines where HEADER_ID = #{headerId} order by line_id desc limit 0,1
+    </select>
+
+    <select id="deleteAll" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        delete  from hap_om_order_lines where HEADER_ID = #{headerId}
+    </select>
+</mapper>

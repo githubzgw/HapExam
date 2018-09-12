@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hap.salesorder.mapper.OmOrderHeadersMapper">
+    <resultMap id="BaseResultMap" type="hap.salesorder.dto.OmOrderHeaders">
+        <result column="HEADER_ID" property="headerId" jdbcType="DECIMAL"/>
+        <result column="ORDER_NUMBER" property="orderNumber" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="ORDER_DATE" property="orderDate" jdbcType="DATE"/>
+        <result column="ORDER_STATUS" property="orderStatus" jdbcType="VARCHAR"/>
+        <result column="CUSTOMER_ID" property="customerId" jdbcType="DECIMAL"/>
+    </resultMap>
+    <resultMap id="MyBaseResultMap" type="hap.salesorder.dto.OmOrderHeaders">
+        <result column="HEADER_ID" property="headerId" jdbcType="DECIMAL"/>
+        <result column="ORDER_NUMBER" property="orderNumber" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="CUSTOMER_ID" property="customerId" jdbcType="DECIMAL"/>
+        <result column="COMPANY_NAME" property="companyName" jdbcType="VARCHAR"/>
+        <result column="CUSTOMER_NAME" property="customerName" jdbcType="VARCHAR"/>
+        <result column="ORDER_DATE" property="orderDate" jdbcType="DATE"/>
+        <result column="ORDER_STATUS" property="orderStatus" jdbcType="VARCHAR"/>
+        <result column="ORDER_PRICE" property="orderPrice" jdbcType="BIGINT"/>
+        <result column="INVENTORY_ITEM_ID" property="inventoryItemId" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <select id="myselect" resultMap="MyBaseResultMap" parameterType="hap.salesorder.dto.OmOrderHeaders">
+        select
+        oh.HEADER_ID,
+        oh.ORDER_NUMBER,
+        com.COMPANY_ID,
+        com.COMPANY_NAME,
+        cu.CUSTOMER_ID,
+        cu.CUSTOMER_NAME,
+        ORDER_DATE,
+        ORDER_STATUS,
+        ii.ITEM_DESCRIPTION,
+        sum(ol.UNIT_SELLING_PRICE*ol.ORDERD_QUANTITY)
+        as ORDER_PRICE
+        from hap_om_order_headers oh,
+        hap_om_order_lines ol,
+        hap_org_companys com,
+        hap_ar_customers cu,
+        hap_inv_inventory_items ii
+        <where>
+            oh.HEADER_ID = ol.HEADER_ID
+            and oh.CUSTOMER_ID = cu.CUSTOMER_ID
+            and oh.COMPANY_ID = com.COMPANY_ID
+            and ii.INVENTORY_ITEM_ID = ol.INVENTORY_ITEM_ID
+            <if test=" headerId != null">
+                and oh.HEADER_ID = #{headerId}
+            </if>
+            <if test=" companyId != null">
+                and oh.COMPANY_ID = #{companyId}
+            </if>
+            <if test=" orderNumber != null">
+                and oh.ORDER_NUMBER = #{orderNumber}
+            </if>
+            <if test=" customerId != null">
+                and oh.CUSTOMER_ID = #{customerId}
+            </if>
+            <if test=" orderStatus != null">
+                and oh.ORDER_STATUS = #{orderStatus}
+            </if>
+            <if test=" inventoryItemId != null">
+                and ii.INVENTORY_ITEM_ID = #{inventoryItemId}
+            </if>
+        </where>
+        GROUP BY ol.HEADER_ID
+    </select>
+
+
+</mapper>

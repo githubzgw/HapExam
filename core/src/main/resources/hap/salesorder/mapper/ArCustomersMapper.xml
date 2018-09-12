@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hap.salesorder.mapper.ArCustomersMapper">
+    <resultMap id="BaseResultMap" type="hap.salesorder.dto.ArCustomers">
+        <result column="CUSTOMER_ID" property="customerId" jdbcType="DECIMAL"/>
+        <result column="CUSTOMER_NUMBER" property="customerNumber" jdbcType="VARCHAR"/>
+        <result column="CUSTOMER_NAME" property="customerName" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="myselect" resultMap="BaseResultMap" parameterType="hap.salesorder.dto.ArCustomers">
+        select * from hap_ar_customers
+        <where>
+            <if test=" customerId != null">
+                CUSTOMER_ID = #{customerId}
+            </if>
+            <if test=" customerNumber != null">
+                OR CUSTOMER_NUMBER = #{customerNumber}
+            </if>
+            <if test=" customerName != null">
+                OR CUSTOMER_NAME = #{customerName}
+            </if>
+            <if test=" companyId != null">
+                OR COMPANY_ID = #{companyId}
+            </if>
+            <if test=" enabledFlag != null">
+                OR ENABLED_FLAG = #{enabledFlag}
+            </if>
+        </where>
+    </select>
+
+</mapper>

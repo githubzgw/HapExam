@@ -1,0 +1,463 @@
+<#include "../include/header.html">
+<script type="text/javascript">
+    //初始化viewModel
+    var viewModel = Hap.createGridViewModel("#grid",{
+        newResource: function (e) {
+            var win = $('#newWin').kendoWindow({
+                iframe: true,
+                draggable: false,
+                content: '${base.contextPath}/salesorder/om_order_lines.html?queryFlag=2',
+                close:function () {
+                    $('#grid').data('kendoGrid').dataSource.page(1);
+                    dataSource.sync();
+                }
+            }).data('kendoWindow');
+            win.title('<@spring.message "hap.new"/>');
+            win.maximize().open();
+        },
+        exportFunc:function () {
+            var headerDataSource = dataSource.data();
+            var lineDataSource = new Array();
+            if (headerDataSource.length > 0){ //如果有选中数据则导出数据
+                for(var i = 0 ;i < headerDataSource.length;i++){
+                    //时间转换
+                    headerDataSource[i].orderDate = kendo.toString(kendo.parseDate(headerDataSource[i].orderDate), "yyyy-MM-dd");
+                    var v = headerDataSource[i].orderStatus;
+                    $.each(orderStatusData,function (i,n) {
+                        if((n.value||'').toLowerCase() == (v||'').toLowerCase()){
+                            v = n.meaning;
+                            return false;
+                        }
+                    })
+                    headerDataSource[i].orderStatus = v;
+                    var header = new Object();
+                    header.headerId = headerDataSource[i].headerId;
+                    $.ajax({
+                        type: "post",
+                        url: "/hap/om/order/lines/myquery",
+                        data: header,
+                        async:false,
+                        success: function(data){
+                            var temp = data.rows
+                            for(var j = 0 ; j<temp.length;j++ ){
+                                lineDataSource.push(temp[j])
+                            }
+                        }
+                    })
+                }
+            }else {
+                return;
+            }
+            excel(headerDataSource,lineDataSource);
+        },
+        otherquery:function () {
+            var OmOrderHeaders = new Object();
+            OmOrderHeaders.headerId = viewModel.model.headerId,
+            OmOrderHeaders.orderStatus = viewModel.model.orderStatus,
+            OmOrderHeaders.companyId = viewModel.model.companyId,
+            OmOrderHeaders.customerId = viewModel.model.customerId,
+            OmOrderHeaders.orderNumber = viewModel.model.orderNumber,
+            OmOrderHeaders.orderDate = viewModel.model.orderDate
+            $.ajax({
+                url:'/hap/om/order/headers/myotherquery',
+                type:'post',
+                data:OmOrderHeaders,
+                success:function (data) {
+                    dataSource._data = data
+                    dataSource.sync();
+                    $('#grid').data('kendoGrid').dataSource.page(1);
+                }
+            })
+        }
+    });
+    function excel(headerDataSource,lineDataSource) {
+        //头标题
+        var headerTitle = ['销售订单号','公司名称','客户名称','订单日期','订单状态'];
+        var headerExcelTitle = [];
+        //行标题
+        var lineTitle = ['物料编码','物料描述','数量','销售单价'];
+        var lineExcelTitle = [];
+        //头数据
+        var headerData = headerDataSource;
+        //最终导出数据
+        var excelData = [];
+        for(var i in headerTitle){
+            headerExcelTitle.push({
+                value: headerTitle[i],                  //标题文字
+                background: '#92cddc',                 //标题背景颜色
+                color: '#000',                         //标题字体颜色
+                textAlign: 'center',                     //文字水平对齐方式
+                verticalAlign: 'center',                  //文字竖直对齐方式
+                borderLeft: {size: 1 ,color:"#ddd"},       //左边框大小及颜色
+                borderRight: {size: 1 ,color:"#ddd"},      //右边框大小及颜色
+                borderBottom: { size: 1 ,color:"#ddd"},   //下边框大小及颜色
+                borderTop: { size: 1 ,color:"#ddd"},      //上边框大小及颜色
+            });
+        }
+        //插入空对象用于空格
+        lineExcelTitle.push({});
+        for(var i in lineTitle){
+            lineExcelTitle.push({
+                value: lineTitle[i],                  //标题文字
+                background: '#92cddc',                 //标题背景颜色
+                color: '#000',                         //标题字体颜色
+                textAlign: 'center',                     //文字水平对齐方式
+                verticalAlign: 'center',                  //文字竖直对齐方式
+                borderLeft: {size: 1 ,color:"#ddd"},       //左边框大小及颜色
+                borderRight: {size: 1 ,color:"#ddd"},      //右边框大小及颜色
+                borderBottom: { size: 1 ,color:"#ddd"},   //下边框大小及颜色
+                borderTop: { size: 1 ,color:"#ddd"},      //上边框大小及颜色
+            });
+        }
+        for(var i=0;i <headerData.length;i++){
+            //插入头数据
+            excelData.push(
+            //插入头标题
+            {cells: headerExcelTitle},
+            {cells: [
+                    { value: headerData[i].orderNumber, borderBottom: { size: 1 ,color:"#ddd"},borderRight: { size: 1 ,color:"#ddd"},verticalAlign: 'center', textAlign: 'center',background: '#ff9' },
+                    { value: headerData[i].companyName, verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */},
+                    { value: headerData[i].customerName, verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */},
+                    { value: headerData[i].orderDate, verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */},
+                    { value: headerData[i].orderStatus, verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */}
+                ],
+            });
+            var lineData = lineDataSource.filter(function (item) {
+                return item.headerId == headerData[i].headerId;
+            });
+            //插入行标题
+            excelData.push({cells: lineExcelTitle});
+            //插入行数据
+            for(var k=0;k <lineData.length;k++){
+                excelData.push({
+                    cells: [
+                        {}, //插入空列
+                        { value: lineData[0]["itemCode"], borderBottom: { size: 1 ,color:"#ddd"},borderRight: { size: 1 ,color:"#ddd"},verticalAlign: 'center', textAlign: 'center',background: '#ff9' },
+                        { value: lineData[0]["itemDescription"], verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */},
+                        { value: lineData[0]["orderdQuantity"], verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */},
+                        { value: lineData[0]["unitSellingPrice"], verticalAlign: 'center', textAlign: 'center'/* background: '#FFF19E' */}
+                    ],
+                });
+            }
+        }
+        //2.2.3设置列宽度与样式
+        var columns = [];
+        for(var i = 0;i <Math.max(headerExcelTitle.length,lineExcelTitle.length);i++){
+            columns.push({ width: 200 });
+        }
+        var workbook = new kendo.ooxml.Workbook({
+            date: new Date(),
+            sheets: [
+                {
+                    name: '销售订单表',       //sheet 名称
+                    columns: columns,      //列
+                    rows: excelData  //数据
+                }
+            ]
+        });
+        kendo.saveAs({
+            dataURI: workbook.toDataURL(), //数据源
+            fileName: '销售订单表' //文件名
+        });
+    }
+</script>
+<script src="${base.contextPath}/common/code?orderStatusData=orderStatus"
+        type="text/javascript"></script>
+<style>
+    .k-grid th{
+        text-align: center!important;
+    }
+    .k-grid td{
+        text-align: center!important;
+    }
+</style>
+<body>
+<div id="newWin" style="display: none"></div>
+<div id="page-content">
+    <div class="panel" id="query-form" style="padding-bottom: 10px">
+        <form class="form-horizontal" id="myFrom">
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-xs-4">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label"><@spring.message
+                                "salesorder.companyname"/></label>
+                            <div class="col-xs-8">
+                                <input id="companyName" type="text" style="width:150px;margin-right:5px;" data-bind="value:model.companyId,text:model.companyName">
+                                <script>
+                                    $("#companyName").kendoLov($.extend(${lovProvider.getLov(base.contextPath,
+    base.locale, "HAP_COMPANY_NAME")},
+                                        {
+                                            select:function (e) {
+                                                viewModel.model.set('companyId', e.item.companyId)
+                                            }
+                                        }))
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-4">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label"><@spring.message
+                                "salesorder.customername"/></label>
+                            <div class="col-xs-8">
+                                <input id="customerName" type="text" style="width:150px;margin-right:5px;" data-bind="value:model.customerId,text:model.customerName">
+                                <script>
+                                    $("#customerName").kendoLov($.extend(${lovProvider.getLov(base.contextPath,
+    base.locale, "HAP_CUSTOMER_NAME")},
+                                        {
+                                            open:function(e){
+                                                if(viewModel.model.companyId == null){
+                                                    this.close()
+                                                }else{
+
+                                                }
+                                            },
+                                            query: function(e) {
+                                                //在query事件中做级联查询，设置参数名为"roleName",值为"管理员",查询出的数据将会是所有角色名为“管理员”的数据
+                                                e.param['companyId'] = viewModel.model.companyId
+                                            },
+                                        }))
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-4">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label"><@spring.message
+                                "salesorder.ordernumber"/></label>
+                            <div class="col-xs-8">
+                                <input id="orderNumber"  type="text" data-role="maskedtextbox"
+                                       style="float:left;width:150px;margin-right:5px;" data-bind="value:model.orderNumber" class="ktextbox"/>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-4">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label"><@spring.message
+                                "salesorder.item"/></label>
+                            <div class="col-xs-8">
+                                <input id="inventory" style="width:150px;margin-right:5px;"data-bind="value:model.inventoryItemId,text:model.itemDescription">
+                            </div>
+                            <script>
+                                $("#inventory").kendoLov($.extend(${lovProvider.getLov(base.contextPath,
+    base.locale, "HAP_INVENTORY")}, {}))
+                            </script>
+                        </div>
+                    </div>
+                    <div class="col-xs-4">
+                        <div class="form-group">
+                            <label class="col-md-4 control-label"><@spring.message
+                                "salesorder.orderstatus"/></label>
+                            <div class="col-xs-8">
+                                <input id="orderStatus" name="orderStatus"  type="text" style="width:150px;margin-right:5px;"
+                                       data-bind="value:model.orderStatus">
+                            </div>
+                            <script>
+                                $("#orderStatus").kendoDropDownList({
+                                    dataSource: orderStatusData,
+                                    valuePrimitive: true,
+                                    dataTextField: "meaning",
+                                    dataValueField: "value"
+                                });
+                            </script>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="pull-left" id="toolbar-btn" style="padding-bottom:10px;">
+                        <span class="btn btn-primary k-grid-add" style="float:left;margin-right:5px;" data-bind="click:newResource" ><@spring.message "hap.new"/></span>
+                        <span class="btn btn-primary pull-left" style="float:left;margin-right: 5px;" data-bind="click:exportFunc"><@spring.message "hap.exportexcel"/></span>
+                    </div>
+                    <div class="pull-right" style="padding-bottom:10px;">
+                        <span class="btn btn-primary" style="float:left;width:70px" data-bind="click:query" type="submit"><@spring.message "hap.query"/></span>
+                        <span class="btn btn-default" style="float:left;width:70px" data-bind="click:reset" type="button"><@spring.message "hap.reset"/></span>
+                        <div style="clear:both"></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <script>kendo.bind($('#query-form'), viewModel);</script>
+    <script>kendo.bind($('#toolbar-btn'), viewModel);</script>
+    <div style="clear:both">
+        <div id="grid"></div>
+    </div>
+</div>
+<script type="text/javascript">
+    Hap.initEnterQuery('#query-form', viewModel.query);
+    var BaseUrl = _basePath;
+    dataSource = new kendo.data.DataSource({
+        transport: {
+            read: {
+                url: BaseUrl + "/hap/om/order/headers/myquery",
+                type: "POST",
+                dataType: "json"
+            },
+            update: {
+                url: BaseUrl + "/hap/om/order/headers/submit",
+                type: "POST",
+                contentType: "application/json"
+            },
+            destroy: {
+                url: BaseUrl + "/hap/om/order/headers/remove",
+                type: "POST",
+                contentType: "application/json"
+            },
+            create: {
+                url: BaseUrl + "/hap/om/order/headers/submit",
+                type: "POST",
+                contentType: "application/json"
+            },
+            parameterMap: function (options, type) {
+                if (type !== "read" && options.models) {
+                    var datas = Hap.prepareSubmitParameter(options, type)
+                    return kendo.stringify(datas);
+                } else if (type === "read") {
+                    return Hap.prepareQueryParameter(viewModel.model.toJSON(), options)
+                }
+            }
+        },
+        batch: true,
+        serverPaging: true,
+        pageSize: 10,
+        schema: {
+            data: 'rows',
+            total: 'total',
+            model: {
+                id: "headerId",
+                fields: {}
+            }
+        }
+    });
+    $("#grid").kendoGrid({
+        dataSource: dataSource,
+        resizable: true,
+        scrollable: true,
+        navigatable: false,
+        selectable: 'multiple, rowbox',
+        dataBound: function (e) {
+            if (parent.autoResizeIframe) {
+                parent.autoResizeIframe('${RequestParameters.functionCode!}')
+            }
+        },
+        pageable: {
+            pageSizes: [5, 10, 20, 50],
+            refresh: true,
+            buttonCount: 5
+        },
+        columns: [
+            {
+                title:'操作',
+                width: 120,
+                template:function(dataItem){
+                    var html = '<a href="javascript:void(0)" onclick="view('+dataItem.headerId+')" style="margin: 5px"><@spring.message "hap.view"/></a>'+
+                        '<a href="javascript:void(0)" onclick="edit('+dataItem.headerId+')" style="margin: 5px"><@spring.message "hap.edit"/></a>'
+                    return html;
+                },
+
+            },
+            {
+                field: "orderNumber",
+                title: '<@spring.message "omorderheaders.ordernumber"/>',
+                width: 200
+            },
+            {
+                field: "companyId",
+                title: '<@spring.message "omorderheaders.companyname"/>',
+                width: 120,
+                template: function (dataItem) {
+                    return dataItem['companyName'] || ''//如果不加，此行会根据field添写字段
+                },
+                editor : function (container, options) {
+                    //LOV_RESOURCE为在lov定义中自定义的lov
+                    $('<input name="' + options.field + '"/>').appendTo(container).kendoLov($.extend(<@lov "HAP_CUSTOMER_NAME"/>,
+                        {
+                            textField: 'companyName',//显示的字段
+                            model    : options.model//将lov选中数据放在model中
+                        }));
+                }
+            },
+            {
+                field: "customerId",
+                title: '<@spring.message "omorderheaders.customername"/>',
+                width: 120,
+                template: function (dataItem) {
+                    return dataItem["customerName"]|| '';
+                },
+            },
+            {
+                field: "orderDate",
+                title: '<@spring.message "omorderheaders.orderdate"/>',
+                width: 120
+            },
+            {
+                field: "orderStatus",
+                title: '<@spring.message "omorderheaders.orderstatus"/>',
+                width: 120,
+                template: function (dataItem) {
+                    var v = dataItem.orderStatus;
+                    $.each(orderStatusData, function (i, n) {
+                        if ((n.value || '').toLowerCase() == (v || '').toLowerCase()) {
+                            v = n.meaning;
+                            return false;
+                        }
+                    })
+                    return v||'';
+                },
+                editor: function (container, options) {
+                    $('<input id="'+options.field+'" name="' + options.field + '"/>')
+                        .appendTo(container)
+                        .kendoComboBox({
+                            dataTextField: "meaning",
+                            dataValueField: "value",
+                            valuePrimitive: true,
+                            dataSource: orderStatusData
+                        });
+                }
+        },
+            {
+                field: "orderPrice",
+                title: '<@spring.message "omorderheaders.orderprice"/>',
+                width: 120
+            },
+        ],
+        editable: true
+    });
+</script>
+<script>
+    function view(headerId) {
+        var win = $('#newWin').kendoWindow({
+            iframe:true,
+            draggable:false,
+            content:'${base.contextPath}/salesorder/om_order_lines.html?queryFlag=0&headerId='+headerId,
+            close:function () {
+                $('#grid').data('kendoGrid').dataSource.page(1);
+            }
+        }).data('kendoWindow');
+        win.title('<@spring.message "查看"/>');
+        win.maximize().open();
+    }
+    function edit(headerId) {
+        var win = $('#newWin').kendoWindow({
+            iframe:true,
+            draggable:false,
+            content:'${base.contextPath}/salesorder/om_order_lines.html?queryFlag=1&headerId='+headerId,
+            close:function () {
+                $('#grid').data('kendoGrid').dataSource.page(1);
+            }
+        }).data('kendoWindow');
+        win.title('<@spring.message "编辑"/>');
+        win.maximize().open();
+    }
+    window.onload = function () {
+        $("#grid").data("kendoGrid").setOptions({
+            editable: false
+        });
+    }
+</script>
+</body>
+</html>
